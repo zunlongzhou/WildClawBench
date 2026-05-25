@@ -4,13 +4,16 @@ set -euo pipefail
 if [[ $# -lt 1 ]]; then
   cat <<'EOF'
 Usage:
-  bash script/run.sh openclaw    [run_batch args...]
-  bash script/run.sh claudecode  [run_batch args...]
-  bash script/run.sh codex       [run_batch args...]
-  bash script/run.sh hermesagent [run_batch args...]
+  bash script/run.sh openclaw       [run_batch args...]
+  bash script/run.sh openclaw-local [run_batch args...]
+  bash script/run.sh claudecode     [run_batch args...]
+  bash script/run.sh codex          [run_batch args...]
+  bash script/run.sh hermesagent    [run_batch args...]
 
 Examples:
   bash script/run.sh openclaw --category all --parallel 4 --model openrouter/openai/gpt-5.5
+  bash script/run.sh openclaw-local --category all --parallel 2 --model openrouter/anthropic/claude-sonnet-4.6
+  bash script/run.sh openclaw-local --task tasks/01_Productivity_Flow/task_1.md --multi-agent research-team
   bash script/run.sh claudecode --category all --parallel 4 --model openai/gpt-5.5
   bash script/run.sh codex --category all --parallel 4 --model openrouter/openai/gpt-5.5
   bash script/run.sh hermesagent --category all --parallel 4 --model openai/gpt-5.5
@@ -27,6 +30,9 @@ case "$backend" in
   openclaw)
     exec python3 eval/run_batch.py --agent-backend openclaw "$@"
     ;;
+  openclaw-local)
+    exec python3 eval/run_batch.py --agent-backend openclaw-local "$@"
+    ;;
   claudecode)
     exec python3 eval/run_batch.py --agent-backend claudecode "$@"
     ;;
@@ -38,7 +44,7 @@ case "$backend" in
     ;;
   *)
     echo "Unknown backend: $backend"
-    echo "Expected one of: openclaw, claudecode, codex, hermesagent"
+    echo "Expected one of: openclaw, openclaw-local, claudecode, codex, hermesagent"
     exit 1
     ;;
 esac

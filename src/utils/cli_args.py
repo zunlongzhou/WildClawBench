@@ -20,7 +20,7 @@ def build_run_batch_parser(default_model: str, default_parallel: int) -> argpars
     parser.add_argument(
         "--agent-backend",
         default="openclaw",
-        choices=["openclaw", "claudecode", "codex", "hermesagent"],
+        choices=["openclaw", "openclaw-local", "claudecode", "codex", "hermesagent"],
         help="Agent backend implementation (default: openclaw)",
     )
     parser.add_argument(
@@ -67,6 +67,63 @@ def build_run_batch_parser(default_model: str, default_parallel: int) -> argpars
         default=None,
         help="Optional OpenClaw image tool model. If unset, falls back to the chat --model.",
     )
+
+    # --- openclaw-local 模式专用参数 ---
+    local_group = parser.add_argument_group("openclaw-local mode options")
+    local_group.add_argument(
+        "--opik-project",
+        default=None,
+        help="Opik project name for tracing (default: wildclaw-bench)",
+    )
+    local_group.add_argument(
+        "--opik-api-url",
+        default=None,
+        help="Opik API URL (default: http://localhost:5173/api)",
+    )
+    local_group.add_argument(
+        "--no-opik",
+        action="store_true",
+        help="Disable Opik tracing in openclaw-local mode",
+    )
+    local_group.add_argument(
+        "--install-skills",
+        default=None,
+        help=(
+            "Comma-separated list of skills to install before running tasks. "
+            "Supports ClawHub slugs (e.g. clawhub:@user/skill-name), local paths, "
+            "and zip/tar.gz files. "
+            "Example: --install-skills './my-skills/web-search.zip,./my-skills/code-review.zip'"
+        ),
+    )
+    local_group.add_argument(
+        "--skills-dir",
+        default=None,
+        help=(
+            "Path to a directory containing skill zip packages (.zip/.tar.gz) and/or "
+            "skill directories to batch-install before running tasks. "
+            "Example: --skills-dir ./my-skill-packs/"
+        ),
+    )
+    local_group.add_argument(
+        "--skills-config",
+        default=None,
+        help=(
+            "Path to a JSON/YAML file defining skills to install with configuration. "
+            "Format: [{\"name\": \"./skill.zip\", \"config\": {...}}, ...]"
+        ),
+    )
+    local_group.add_argument(
+        "--multi-agent",
+        default=None,
+        choices=["research-team", "security-audit", "custom"],
+        help="Enable multi-agent mode with a preset team configuration",
+    )
+    local_group.add_argument(
+        "--multi-agent-config",
+        default=None,
+        help="Path to a JSON file defining custom multi-agent configuration",
+    )
+
     return parser
 
 

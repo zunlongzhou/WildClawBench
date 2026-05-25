@@ -18,6 +18,7 @@ from src.agents.base import AgentTaskSpec, BaseAgent
 from src.agents.claudecode import ClaudeCodeAgent
 from src.agents.codex import CodexAgent
 from src.agents.openclaw import OpenClawAgent
+from src.agents.openclaw_local import OpenClawLocalAgent
 from src.utils.cli_args import parse_run_batch_args
 from src.utils.endpoint_utils import (
     normalize_openrouter_base_url_for_claudecode,
@@ -321,6 +322,50 @@ def main() -> None:
             openrouter_api_key=OPENROUTER_API_KEY,
             openrouter_base_url=OPENROUTER_BASE_URL_OPENCLAW,
         )
+    elif args.agent_backend == "openclaw-local":
+        opik_enabled = not getattr(args, "no_opik", False)
+        backend = OpenClawLocalAgent(
+            gateway_port=GATEWAY_PORT,
+            openrouter_api_key=OPENROUTER_API_KEY,
+            openrouter_base_url=OPENROUTER_BASE_URL_OPENCLAW,
+            opik_enabled=opik_enabled,
+            opik_project_name=getattr(args, "opik_project", None) or "wildclaw-bench",
+            opik_api_url=getattr(args, "opik_api_url", None) or "",
+            image_model=args.openclaw_image_model,
+            install_skills=getattr(args, "install_skills", None) or "",
+            skills_config=getattr(args, "skills_config", None) or "",
+            skills_dir=getattr(args, "skills_dir", None) or "",
+        )
+        # 如果启用了 multi-agent 模式，设置 Agent 团队
+        multi_agent_preset = getattr(args, "multi_agent", None)
+        if multi_agent_preset:
+            from src.agents.openclaw_local.multi_agent import (
+                MultiAgentOrchestrator,
+            )
+            orchestrator = MultiAgentOrchestrator()
+            if multi_agent_preset == "research-team":
+                ma_config = MultiAgentOrchestrator.create_research_team(main_model=args.model)
+            elif multi_agent_preset == "security-audit":
+                ma_config = MultiAgentOrchestrator.create_security_audit_team(main_model=args.model)
+            else:
+                import json as _json
+                ma_config_path = Path(getattr(args, "multi_agent_config", "") or "")
+                if not ma_config_path.is_file():
+                    logger.error("--multi-agent=custom requires --multi-agent-config path")
+                    sys.exit(1)
+                from src.agents.openclaw_local.multi_agent import (
+                    MultiAgentConfig,
+                    SubAgentConfig,
+                )
+                raw = _json.loads(ma_config_path.read_text(encoding="utf-8"))
+                ma_config = MultiAgentConfig(
+                    orchestrator_model=raw.get("orchestrator_model", args.model),
+                    orchestrator_prompt=raw.get("orchestrator_prompt", ""),
+                    sub_agents=[SubAgentConfig(**sa) for sa in raw.get("sub_agents", [])],
+                    coordination_mode=raw.get("coordination_mode", "sequential"),
+                )
+            orchestrator.setup(ma_config)
+            logger.info("Multi-agent mode enabled: %s", multi_agent_preset)
     else:
         backend = OpenClawAgent(
             gateway_port=GATEWAY_PORT,
